@@ -24,15 +24,16 @@ public class EmployeeListTest {
     public void populateTree() throws Exception {
         EmployeeList employeeList = new EmployeeList(jdbcTemplate);
         employeeList.setUpDB();
-
-        Node<Employee> expected = new Node<>(new Employee("Jamie", 150L, null));
+        Node<Employee> expected = new Node<>(null);
+        Node<Employee> jamie = new Node<>(new Employee("Jamie", 150L, 0L));
         Node<Employee> alan = new Node<>(new Employee("Alan", 100L, 150L));
         alan.addChild(new Employee("Martin", 220L, 100L));
         alan.addChild(new Employee("Alex", 275L, 100L));
-        expected.addChild(alan);
+        jamie.addChild(alan);
         Node<Employee> steve = new Node<>(new Employee("Steve", 400L, 150L));
         steve.addChild(new Employee("David", 190L, 400L));
-        expected.addChild(steve);
+        jamie.addChild(steve);
+        expected.addChild(jamie);
 
         assertThat(employeeList.populateTree(), is(expected));
     }

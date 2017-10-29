@@ -56,14 +56,27 @@ public class Node<T>{
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         Node<?> node = (Node<?>) o;
 
-        if (data != null ? !data.equals(node.data) : node.data != null) return false;
-        if (children != null ? !children.equals(node.children) : node.children != null) return false;
-        return parent != null ? parent.equals(node.parent) : node.parent == null;
+        if (data != null ? !data.equals(node.data) : node.data != null) {
+            return false;
+        }
+        return children != null ? children.equals(node.children) : node.children == null;
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = data != null ? data.hashCode() : 0;
+        result = 31 * result + (children != null ? children.hashCode() : 0);
+        return result;
     }
 
     @Override

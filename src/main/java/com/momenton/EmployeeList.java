@@ -37,23 +37,31 @@ public class EmployeeList {
 
 
     public Node<Employee> populateTree() {
-        Node<Employee> employees;
+        Node<Employee> employees = new Node<>(null);
         List<Employee> headManagers = new ArrayList<>(jdbcTemplate.query(
                 "SELECT employee_name, id, manager_id FROM employees WHERE manager_id is null",
                 (rs, rowNum) -> new Employee(rs.getString("employee_name"), rs.getLong("id"), rs.getLong("manager_id"))
         ));
 
         for (Employee employee: headManagers) {
-            employees = new Node<>(employee);
-            employees.addChild(getChildren(employee.getId()));
+            //employees = new Node<>(employee);
+            employees.addChild(getChildren(employee));
         }
 
 
-        return null;
+        return employees;
     }
 
-    private Node<Employee> getChildren(Long id) {
-
+    private Node<Employee> getChildren(Employee manager) {
+        List<Employee> reports = new ArrayList<>(jdbcTemplate.query(
+            "SELECT employee_name, id, manager_id FROM employees WHERE manager_id = ?", new Object[]{manager.getId()},
+            (rs, rowNum) -> new Employee(rs.getString("employee_name"), rs.getLong("id"), rs.getLong("manager_id"))
+        ));
+        Node<Employee> employeeNode = new Node<>(manager);
+        for (Employee employee: reports) {
+            employeeNode.addChild(getChildren(employee));
+        }
+        return employeeNode;
     }
 
     public void setUpDB() {
