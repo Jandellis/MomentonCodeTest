@@ -5,10 +5,10 @@ package com.momenton;
  */
 public class Employee {
     private String employeeName;
-    private long id;
-    private long managerId;
+    private Long id;
+    private Long managerId;
 
-    public Employee(String employeeName, long id, long managerId) {
+    public Employee(String employeeName, Long id, Long managerId) {
         this.employeeName = employeeName;
         this.id = id;
         this.managerId = managerId;
@@ -23,11 +23,32 @@ public class Employee {
                 '}';
     }
 
-    public long getId() {
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        Employee employee = (Employee) o;
+
+        if (employeeName != null ? !employeeName.equals(employee.employeeName) : employee.employeeName != null)
+            return false;
+        if (id != null ? !id.equals(employee.id) : employee.id != null) return false;
+        return managerId != null ? managerId.equals(employee.managerId) : employee.managerId == null;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = employeeName != null ? employeeName.hashCode() : 0;
+        result = 31 * result + (id != null ? id.hashCode() : 0);
+        result = 31 * result + (managerId != null ? managerId.hashCode() : 0);
+        return result;
+    }
+
+    public Long getId() {
         return id;
     }
 
-    public void setId(long id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
@@ -39,11 +60,11 @@ public class Employee {
         this.employeeName = employeeName;
     }
 
-    public long getManagerId() {
+    public Long getManagerId() {
         return managerId;
     }
 
-    public void setManagerId(long managerId) {
+    public void setManagerId(Long managerId) {
         this.managerId = managerId;
     }
 }
