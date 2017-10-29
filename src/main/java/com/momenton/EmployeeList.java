@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -18,7 +19,6 @@ public class EmployeeList {
 
     private static final Logger log = LoggerFactory.getLogger(EmployeeList.class);
 
-    //@Autowired
     JdbcTemplate jdbcTemplate;
 
     @Autowired
@@ -37,7 +37,23 @@ public class EmployeeList {
 
 
     public Node<Employee> populateTree() {
+        Node<Employee> employees;
+        List<Employee> headManagers = new ArrayList<>(jdbcTemplate.query(
+                "SELECT employee_name, id, manager_id FROM employees WHERE manager_id is null",
+                (rs, rowNum) -> new Employee(rs.getString("employee_name"), rs.getLong("id"), rs.getLong("manager_id"))
+        ));
+
+        for (Employee employee: headManagers) {
+            employees = new Node<>(employee);
+            employees.addChild(getChildren(employee.getId()));
+        }
+
+
         return null;
+    }
+
+    private Node<Employee> getChildren(Long id) {
+
     }
 
     public void setUpDB() {
