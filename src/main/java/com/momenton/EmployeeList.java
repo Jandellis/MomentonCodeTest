@@ -17,74 +17,123 @@ import java.util.stream.Stream;
 @Component
 public class EmployeeList {
 
-    private static final Logger log = LoggerFactory.getLogger(EmployeeList.class);
+  private static final Logger log = LoggerFactory.getLogger(EmployeeList.class);
 
-    JdbcTemplate jdbcTemplate;
+  JdbcTemplate jdbcTemplate;
 
-    @Autowired
-    public EmployeeList(JdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
+  @Autowired
+  public EmployeeList(JdbcTemplate jdbcTemplate) {
+    this.jdbcTemplate = jdbcTemplate;
+  }
+
+  public void init() {
+    setUpDB();
+    List<Integer> size = jdbcTemplate.query(
+        "SELECT employee_name, length(employee_name) as length FROM employees ORDER BY length DESC LIMIT 1",
+        (rs, rowNum) -> rs.getInt("length"));
+
+    Node<Employee> employees = populateTree();
+    print(employees, employees.getDepth(), size.get(0));
+    printStartEndLine(employees.getDepth(), size.get(0));
+
+
+  }
+
+  public void printStartEndLine(int columns, int maxSize) {
+    StringBuilder builder = new StringBuilder();
+    builder.append("+");
+    for (int i = 0; i < columns; i++) {
+      for (int j = 0; j < maxSize - 1; j++) {
+        builder.append("-");
+      }
     }
+    builder.append("+");
+    log.info(builder.toString());
+  }
 
-    public void init() {
-        setUpDB();
-        //dump table into tree structure
-        //multiple trees if more than one person with out manager
-        //once done work out max depth
-        //depth = columns
-        //then start drawing
-    }
-
-
-    public Node<Employee> populateTree() {
-        Node<Employee> employees = new Node<>(null);
-        List<Employee> headManagers = new ArrayList<>(jdbcTemplate.query(
-                "SELECT employee_name, id, manager_id FROM employees WHERE manager_id is null",
-                (rs, rowNum) -> new Employee(rs.getString("employee_name"), rs.getLong("id"), rs.getLong("manager_id"))
-        ));
-
-        for (Employee employee: headManagers) {
-            //employees = new Node<>(employee);
-            employees.addChild(getChildren(employee));
+  public void print(Node<Employee> employees, int columns, int maxSize) {
+    if (employees.getData() == null) {
+      printStartEndLine(columns, maxSize);
+    } else {
+      int depth = employees.getDepth();
+      int difference = columns - depth;
+      StringBuilder line = new StringBuilder();
+      //print columns before name
+      for (int i = 0; i < difference - 1; i++) {
+        line.append("|");
+        for (int j = 0; j < maxSize; j++) {
+          line.append(" ");
         }
+      }
+      line.append("|");
 
+      //print name
+      line.append(employees.getData().getEmployeeName());
+      for (int j = 0; j < maxSize - employees.getData().getEmployeeName().length(); j++) {
+        line.append(" ");
+      }
 
-        return employees;
-    }
-
-    private Node<Employee> getChildren(Employee manager) {
-        List<Employee> reports = new ArrayList<>(jdbcTemplate.query(
-            "SELECT employee_name, id, manager_id FROM employees WHERE manager_id = ?", new Object[]{manager.getId()},
-            (rs, rowNum) -> new Employee(rs.getString("employee_name"), rs.getLong("id"), rs.getLong("manager_id"))
-        ));
-        Node<Employee> employeeNode = new Node<>(manager);
-        for (Employee employee: reports) {
-            employeeNode.addChild(getChildren(employee));
+      //print columns after name
+      for (int i = 0; i < depth - 1; i++) {
+        line.append("|");
+        for (int j = 0; j < maxSize; j++) {
+          line.append(" ");
         }
-        return employeeNode;
+      }
+      line.append("|");
+      log.info(line.toString());
+    }
+    for (Node<Employee> employee : employees.getChildren()) {
+      print(employee, columns, maxSize);
     }
 
-    public void setUpDB() {
+  }
 
-        log.info("Creating table");
 
-        jdbcTemplate.execute("DROP TABLE employees IF EXISTS");
-        jdbcTemplate.execute("CREATE TABLE employees(" +
-                "employee_name VARCHAR(255), id int, manager_id int, " +
-                "PRIMARY KEY (id)," +
-                "FOREIGN KEY(manager_id) REFERENCES employees(id))");
+  public Node<Employee> populateTree() {
+    Node<Employee> employees = new Node<>(null);
+    List<Employee> headManagers = new ArrayList<>(jdbcTemplate.query(
+        "SELECT employee_name, id, manager_id FROM employees WHERE manager_id is null",
+        (rs, rowNum) -> new Employee(rs.getString("employee_name"), rs.getLong("id"), rs.getLong("manager_id"))
+    ));
 
-        List<Object[]> employeeList = Stream.of("Jamie,150,", "Alan,100,150", "Steve,400,150", "Martin,220,100", "Alex,275,100", "David,190,400")
-                .map(name -> name.split(","))
-                .collect(Collectors.toList());
-        employeeList.forEach(info -> log.info(String.format("Inserting customer record for %s with id of %s and manager id of %s", info[0], info[1], info.length > 2 ? info[2] : "")));
-
-        // Uses JdbcTemplate's batchUpdate operation to bulk load data
-        jdbcTemplate.batchUpdate("INSERT INTO employees(employee_name, id, manager_id) VALUES (?,?,?)", employeeList);
-
-        jdbcTemplate.query(
-                "SELECT employee_name, id, manager_id FROM employees WHERE employee_name = ?", new Object[]{"Alan"},
-                (rs, rowNum) -> new Employee(rs.getString("employee_name"), rs.getLong("id"), rs.getLong("manager_id"))
-        ).forEach(employee -> log.info(employee.toString()));
+    for (Employee employee : headManagers) {
+      //employees = new Node<>(employee);
+      employees.addChild(getChildren(employee));
     }
+
+    return employees;
+  }
+
+  private Node<Employee> getChildren(Employee manager) {
+    List<Employee> reports = new ArrayList<>(jdbcTemplate.query(
+        "SELECT employee_name, id, manager_id FROM employees WHERE manager_id = ?", new Object[]{manager.getId()},
+        (rs, rowNum) -> new Employee(rs.getString("employee_name"), rs.getLong("id"), rs.getLong("manager_id"))
+    ));
+    Node<Employee> employeeNode = new Node<>(manager);
+    for (Employee employee : reports) {
+      employeeNode.addChild(getChildren(employee));
+    }
+    return employeeNode;
+  }
+
+  public void setUpDB() {
+
+    log.info("Creating table");
+
+    jdbcTemplate.execute("DROP TABLE employees IF EXISTS");
+    jdbcTemplate.execute("CREATE TABLE employees(" +
+        "employee_name VARCHAR(255), id int, manager_id int, " +
+        "PRIMARY KEY (id)," +
+        "FOREIGN KEY(manager_id) REFERENCES employees(id))");
+
+    List<Object[]> employeeList = Stream
+        .of("Jamie,150,", "Alan,100,150", "Steve,400,150", "Martin,220,100", "Alex,275,100", "David,190,400")
+        .map(name -> name.split(","))
+        .collect(Collectors.toList());
+
+    // Uses JdbcTemplate's batchUpdate operation to bulk load data
+    jdbcTemplate.batchUpdate("INSERT INTO employees(employee_name, id, manager_id) VALUES (?,?,?)", employeeList);
+
+  }
 }
