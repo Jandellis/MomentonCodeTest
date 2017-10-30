@@ -86,4 +86,16 @@ public class Node<T>{
                 ", children=" + children +
                 '}';
     }
+
+    public int getDepth() {
+        int currentDepth = 1;
+        int maxChildDepth = 0;
+        for (Node node : children) {
+            int childDepth = node.getDepth();
+            if (maxChildDepth < childDepth) {
+                maxChildDepth = childDepth;
+            }
+        }
+        return maxChildDepth + currentDepth;
+    }
 }
